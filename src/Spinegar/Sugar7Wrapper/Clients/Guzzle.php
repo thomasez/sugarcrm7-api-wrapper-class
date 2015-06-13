@@ -1,8 +1,7 @@
 <?php namespace Spinegar\Sugar7Wrapper\Clients;
 
-use Guzzle\Common\Event;
-use Guzzle\Http\Client;
-use Guzzle\Http\Query;
+use GuzzleHttp\Client;
+
 /**
  * SugarCRM 7 Rest Client
  *
@@ -52,21 +51,60 @@ class Guzzle implements ClientInterface {
   protected $client;
 
   /**
+  * Variable: $options
+  * Description:  Guzzle Client Options
+  */
+  private $options = array();
+
+  /**
   * Function: __construct()
   * Parameters:   none    
   * Description:  Construct Class
   * Returns:  VOID
   */
-  function __construct()
-  {
-    $this->client = new Client();
-  }
+  function __construct(){}
 
   /**
   * Function: __destruct()
   * Parameters:   none    
   */
   function __destruct(){}
+
+  /**
+   * Function: getGuzzleConfig
+   * Parameters: none
+   * Description: Returns a composited config for crerating a Guzzle client.
+   * already.  
+   * Returns: array.
+   */
+  function getGuzzleConfig()
+  {
+    // Note from thomasez: We can drop this if we drop the specific parameters
+    // above and just set the options directly from within setUrl & co.
+    $config = $this->options;
+    if ($this->url)
+        $config['base_uri'] = $this->url;
+    
+    return $config;
+  }
+
+  /**
+   * Function: getClient
+   * Parameters: none
+   * Description: Return a client. Creates a client if it has not been created
+   * already.  
+   * Returns: client
+   */
+  function getClient()
+  {
+    if ($this->client) {
+        return $this->client;
+    }
+
+    $this->client = new Client($this->getGuzzleConfig());
+
+    return $this->client;
+  }
 
   /**
    * Function: getNewAuthToken
@@ -76,16 +114,18 @@ class Guzzle implements ClientInterface {
    */
   public function getNewAuthToken()
   {
-    $request = $this->client->post('oauth2/token', null, array(
-        'grant_type' => 'password',
-        'client_id' => 'sugar',
-        'client_secret' => '',
-        'username' => $this->username,
-        'password' => $this->password,
-        'platform' => $this->platform,
+    $response = $this->getClient()->post('oauth2/token', array(
+        'form_params' => array(
+            'grant_type' => 'password',
+            'client_id' => 'sugar',
+            'client_secret' => '',
+            'username' => $this->username,
+            'password' => $this->password,
+            'platform' => $this->platform,
+        )
     ));
 
-    $result = $request->send()->json();
+    $result = json_decode($response->getBody(), true);
     return $result['access_token'];
   }
 
@@ -104,9 +144,11 @@ class Guzzle implements ClientInterface {
     }
 
     self::setToken($token);
-    $eventDispatcher = $this->client->getEventDispatcher();
+    /*
+    $eventDispatcher = $this->getClient()->getEventDispatcher();
     $eventDispatcher->addListener('request.before_send', array($this, 'beforeSendRequest'));
     $eventDispatcher->addListener('request.error', array($this, 'refreshToken'));
+    */
 
     return true;
   }
@@ -126,7 +168,7 @@ class Guzzle implements ClientInterface {
   }
 
   /**
-  * Function: setClientOptions()
+  * Function: setClientOption()
   * Parameters:   $key = Guzzle option, $value = Value  
   * Description:  Set Default options for the Guzzle client.
   * Returns:  returns FALSE is falsy, otherwise TRUE
@@ -136,7 +178,7 @@ class Guzzle implements ClientInterface {
     if(!$key || $value)
       return false;
 
-    $this->client->setDefaultOption($key, $value);
+    $this->options[$key] = $value;
 
     return true;
   }
@@ -153,8 +195,6 @@ class Guzzle implements ClientInterface {
       return false;
 
     $this->url = $value;
-    $this->client->setBaseUrl($this->url) ;
-
     return true;
   }
 
@@ -255,21 +295,19 @@ class Guzzle implements ClientInterface {
     if(!self::check())
       self::connect();
 
-    $request = $this->client->get($endpoint);
+    $response = $this->getClient()->get($endpoint, 
+        array(
+            'headers' =>
+                array('OAuth-Token' => $this->token),
+            'query' => $parameters,
+    ));
 
-    $query = $request->getQuery();
+    $result = json_decode($response->getBody(), true);
 
-    foreach($parameters as $key=>$value)
-    {
-      $query->add($key, $value);
-    }
-
-    $response = $request->send()->json();
-
-    if(!$response)
+    if(!$result)
       return false;
 
-    return $response;
+    return $result;
   }
 
   /**
@@ -286,7 +324,7 @@ class Guzzle implements ClientInterface {
     if(!self::check())
       self::connect();
 
-    $request = $this->client->get($endpoint);
+    $request = $this->getClient()->get($endpoint);
 
     $query = $request->getQuery();
 
@@ -318,7 +356,7 @@ class Guzzle implements ClientInterface {
     if(!self::check())
       self::connect();
 
-    $request = $this->client->post($endpoint, array(), $parameters);
+    $request = $this->getClient()->post($endpoint, array(), $parameters);
     $request->setHeader('Content-Type', 'multipart/form-data');
     $result = $request->send();
 
@@ -341,13 +379,15 @@ class Guzzle implements ClientInterface {
     if(!self::check())
       self::connect();
 
-    $request = $this->client->post($endpoint, null, json_encode($parameters));
-    $response = $request->send()->json();
+    // TODO: Guzzle 6 har a json option. Use that.
+    $response = $this->getClient()->post($endpoint, null, json_encode($parameters));
 
-    if(!$response)
+    $result = json_decode($response->getBody(), true);
+
+    if(!$result)
       return false;
 
-    return $response;
+    return $result;
   }
   
   /**
@@ -363,13 +403,13 @@ class Guzzle implements ClientInterface {
     if(!self::check())
       self::connect();
 
-    $request = $this->client->put($endpoint, null, json_encode($parameters));
-    $response = $request->send()->json();
+    $response = $this->getClient()->put($endpoint, null, json_encode($parameters));
+    $result = json_decode($response->getBody(), true);
 
-    if(!$response)
+    if(!$result)
       return false;
 
-    return $response;
+    return $result;
   }
 
     /**
@@ -384,14 +424,13 @@ class Guzzle implements ClientInterface {
     if(!self::check())
       self::connect();
 
-    $request = $this->client->delete($endpoint);
-    $response = $request->send()->json();
+    $respons = $this->getClient()->delete($endpoint);
+    $result = json_decode($response->getBody(), true);
 
-
-    if(!$response)
+    if(!$result)
       return false;
 
-    return $response;
+    return $result;
   }
 
   /**
