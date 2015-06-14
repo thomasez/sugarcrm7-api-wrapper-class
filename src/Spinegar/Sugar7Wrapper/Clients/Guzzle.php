@@ -115,7 +115,7 @@ class Guzzle implements ClientInterface {
   public function getNewAuthToken()
   {
     $response = $this->getClient()->post('oauth2/token', array(
-        'form_params' => array(
+        'json' => array(
             'grant_type' => 'password',
             'client_id' => 'sugar',
             'client_secret' => '',
@@ -144,12 +144,6 @@ class Guzzle implements ClientInterface {
     }
 
     self::setToken($token);
-    /*
-    $eventDispatcher = $this->getClient()->getEventDispatcher();
-    $eventDispatcher->addListener('request.before_send', array($this, 'beforeSendRequest'));
-    $eventDispatcher->addListener('request.error', array($this, 'refreshToken'));
-    */
-
     return true;
   }
 
@@ -283,6 +277,45 @@ class Guzzle implements ClientInterface {
   }
 
   /**
+  * Function: request()
+  * Parameters: 
+  *   $method = endpoint per API specs
+  *   $endpoint = endpoint per API specs
+  *   $parameters = Parameters per API specs
+  *   $decode_json = Boolen for trigging a decode of the response json.
+  * Description:  Calls the API via the request function.
+  * Returns:  Returns an Array or response object if successful, otherwise FALSE
+  */
+  public function request($method, $endpoint, $parameters = array(), $decode_json = true)
+  {
+    // Move to getClient?
+    if(!self::check())
+      self::connect();
+
+    $parameters['headers'] = array('OAuth-Token' => $this->token);
+    $response = $this->getClient()->request($method, $endpoint, $parameters);
+
+    // If we are here without a token we'd better not retry since something
+    // else is wrong.
+    if ($response->getStatusCode() === 401 && $this->token) {
+      $token = $this->getNewAuthToken();
+        if ($token) {
+          $this->setToken($token);
+          // Time to retry.
+          return $this->request($method, $endpoint, $parameters, $decode_json);
+        }
+    }
+
+    if(!$response)
+      return false;
+
+    if ($response && $decode_json)
+        return json_decode($response->getBody(), true);
+
+    return $response;
+  }
+
+  /**
   * Function: get()
   * Parameters: 
   *   $endpoint = endpoint per API specs
@@ -292,26 +325,14 @@ class Guzzle implements ClientInterface {
   */
   public function get($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
-
-    $response = $this->getClient()->get($endpoint, 
-        array(
-            'headers' =>
-                array('OAuth-Token' => $this->token),
-            'query' => $parameters,
-    ));
-
-    $result = json_decode($response->getBody(), true);
-
-    if(!$result)
-      return false;
+    $result = $this->request('GET', $endpoint, 
+        array( 'query' => $parameters,));
 
     return $result;
   }
 
   /**
-  * Function: get()
+  * Function: getFile()
   * Parameters: 
   *   $endpoint = endpoint per API specs
   *   $destinationFile = destination file including folders and file extension (e.g. /var/www/html/somefile.zip)
@@ -376,18 +397,8 @@ class Guzzle implements ClientInterface {
   */
   public function post($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
-
-    // TODO: Guzzle 6 har a json option. Use that.
-    $response = $this->getClient()->post($endpoint, null, json_encode($parameters));
-
-    $result = json_decode($response->getBody(), true);
-
-    if(!$result)
-      return false;
-
-    return $result;
+    return $this->getClient()->request('POST', $endpoint, 
+        array('json' => $parameters));
   }
   
   /**
@@ -400,19 +411,11 @@ class Guzzle implements ClientInterface {
   */
   public function put($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
-
-    $response = $this->getClient()->put($endpoint, null, json_encode($parameters));
-    $result = json_decode($response->getBody(), true);
-
-    if(!$result)
-      return false;
-
-    return $result;
+    return $this->getClient()->request('PUT', $endpoint, 
+        array('json' => $parameters));
   }
 
-    /**
+ /**
   * Function: delete()
   * Parameters: 
   *   $endpoint = endpoint per API specs
@@ -421,44 +424,6 @@ class Guzzle implements ClientInterface {
   */
   public function delete($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
-
-    $respons = $this->getClient()->delete($endpoint);
-    $result = json_decode($response->getBody(), true);
-
-    if(!$result)
-      return false;
-
-    return $result;
-  }
-
-  /**
-   * Function: refreshToken()
-   * Parameters:
-   *    $event = Guzzle\Commmon\Event
-   * Description: Attempts to reconnect with new token on 401
-   * Returns: VOID
-   */
-  public function refreshToken(Event $event)
-  {
-    if ($event['response']->getStatusCode() === 401) {
-      $this->setToken($this->getNewAuthToken());
-
-      $event['response'] = $event['request']->send();
-      $event->stopPropagation();
-    }
-  }
-
-  /**
-   * Function: beforeSendRequest()
-   * Parameters:
-   *    $event = Guzzle\Common\Event
-   * Description: Add oauth token to header on each request
-   * Returns: VOID
-   */
-  public function beforeSendRequest(Event $event)
-  {
-    $event['request']->setHeader('OAuth-Token', $this->token);
+    return $this->getClient()->request('DELETE', $endpoint);
   }
 }
