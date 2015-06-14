@@ -326,7 +326,7 @@ class Guzzle implements ClientInterface {
   public function get($endpoint, $parameters = array())
   {
     $result = $this->request('GET', $endpoint, 
-        array( 'query' => $parameters,));
+        array('query' => $parameters));
 
     return $result;
   }
@@ -342,26 +342,12 @@ class Guzzle implements ClientInterface {
   */
   public function getFile($endpoint, $destinationFile, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
-
-    $request = $this->getClient()->get($endpoint);
-
-    $query = $request->getQuery();
-
-    foreach($parameters as $key=>$value)
-    {
-      $query->add($key, $value);
-    }
-
-    $request->setResponseBody($destinationFile);
-
-    $response = $request->send();
-
-    if(!$response)
-      return false;
-
-    return $response;
+    return $this->request('GET', $endpoint, 
+        array(
+            'query' => $parameters,
+            'sink' => $destinationFile,
+            'decode_content' => false
+        ), false);
   }
 
   /**
@@ -377,14 +363,14 @@ class Guzzle implements ClientInterface {
     if(!self::check())
       self::connect();
 
-    $request = $this->getClient()->post($endpoint, array(), $parameters);
-    $request->setHeader('Content-Type', 'multipart/form-data');
-    $result = $request->send();
+    // I have a slight feeling this may be a BC break.
+    // New method: (name, contents, filename)
+    // http://docs.guzzlephp.org/en/latest/request-options.html#multipart
+    $parameters = array('multipart' => $parameters);
 
-    if(!$result)
-      return false;
-
-    return $result;
+    // Is returning the response the correct action here? The original one
+    // returned an array of responses if I groked the Guzzle code correctly.
+    return $this->getClient()->request('POST', $endpoint, $parameters, false);
   }
 
   /**
