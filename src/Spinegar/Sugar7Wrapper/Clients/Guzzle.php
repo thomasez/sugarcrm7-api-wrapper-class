@@ -309,7 +309,7 @@ class Guzzle implements ClientInterface {
     if(!$response)
       return false;
 
-    if ($response && $decode_json)
+    if ($decode_json)
         return json_decode($response->getBody(), true);
 
     return $response;
