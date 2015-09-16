@@ -1,7 +1,6 @@
 <?php namespace Spinegar\Sugar7Wrapper\Clients;
 
 use GuzzleHttp\Client;
-
 /**
  * SugarCRM 7 Rest Client
  *
@@ -319,6 +318,10 @@ class Guzzle implements ClientInterface {
   * Function: get()
   * Parameters: 
   *   $endpoint = endpoint per API specs
+<<<<<<< HEAD
+=======
+  *   $destinationFile = destination file including folders and file extension (e.g. /var/www/html/someFile.zip)
+>>>>>>> upstream/master
   *   $parameters = Parameters per API specs
   * Description:  Calls the API via HTTP GET
   * Returns:  Returns an Array if successful, otherwise FALSE
