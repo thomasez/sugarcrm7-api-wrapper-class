@@ -15,8 +15,10 @@ Contents
 
 1. About
 -------
-- PHP library interacting with a SugarCRM 7 REST API
-- Designed to work with SugarCRM 7 and the v10 REST API
+- PHP library interacting with a SugarCRM 7.x REST API
+- Designed to work with SugarCRM 7.x and the v10 REST API
+
+- Forked from https://github.com/spinegar/sugarcrm7-api-wrapper-class until it can be pulled into it.
 
 2. Installation via Composer
 ----------------------------
@@ -25,7 +27,7 @@ Edit composer.json
 ```json
 {
 	"require": {
-		"spinegar/sugar7wrapper": "dev-master"
+		"thomasez/sugar7wrapper": "dev-master"
 	},
 	"minimum-stability": "dev"
 }
