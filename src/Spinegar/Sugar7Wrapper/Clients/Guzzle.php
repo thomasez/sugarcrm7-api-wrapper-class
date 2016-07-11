@@ -1,7 +1,6 @@
 <?php namespace Spinegar\Sugar7Wrapper\Clients;
 
 use GuzzleHttp\Client;
-
 /**
  * SugarCRM 7 Rest Client
  *
