@@ -1,11 +1,7 @@
 {
-    "name": "thomasez/sugar7wrapper",
+    "name": "spinegar/sugar7wrapper",
     "description": "SugarCRM 7 REST API Wrapper",
     "authors": [
-        {
-            "name": "Sean Pinegar",
-            "email": "spinegar@gmail.com"
-        },
         {
             "name": "Thomas Lundquist",
             "email": "github@bisonlab.no"
