@@ -292,17 +292,21 @@ class Guzzle implements ClientInterface {
       self::connect();
 
     $parameters['headers'] = array('OAuth-Token' => $this->token);
-    $response = $this->getClient()->request($method, $endpoint, $parameters);
-
-    // If we are here without a token we'd better not retry since something
-    // else is wrong.
-    if ($response->getStatusCode() === 401 && $this->token) {
-      $token = $this->getNewAuthToken();
-        if ($token) {
-          $this->setToken($token);
-          // Time to retry.
-          return $this->request($method, $endpoint, $parameters, $decode_json);
+    try {
+        $response = $this->getClient()->request($method, $endpoint, $parameters);
+    } catch (\GuzzleHttp\Exception\ClientException $e) {
+        // If we are here without a token we'd better not retry since something
+        // else is wrong.
+        if ($e->getCode() == 401 && $this->token) {
+          $token = $this->getNewAuthToken();
+            if ($token) {
+              $this->setToken($token);
+              // Time to retry.
+              return $this->request($method, $endpoint, $parameters, $decode_json);
+            }
         }
+        // Not a 401, gotta throw.
+        throw $e;
     }
 
     if(!$response)
