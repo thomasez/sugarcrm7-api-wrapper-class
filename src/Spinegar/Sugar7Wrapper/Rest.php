@@ -1,7 +1,5 @@
 <?php namespace Spinegar\Sugar7Wrapper;
 
-use Spinegar\Sugar7Wrapper\Clients\Guzzle;
-
 /**
  * SugarCRM 7 Rest Wrapper
  *
@@ -15,15 +13,29 @@ use Spinegar\Sugar7Wrapper\Clients\Guzzle;
 class Rest {
 
   protected $client;
+
   /**
   * Function: __construct()
   * Parameters:   none    
   * Description:  Construct Class
   * Returns:  VOID
   */
-  public function __construct()
+  // This does not break BC, but it probably should.
+  public function __construct($client = "Guzzle3")
   {
-    $this->client = new Guzzle;
+    switch ($client) {
+      case "Guzzle6":
+        $this->client = new \Spinegar\Sugar7Wrapper\Clients\Guzzle6;
+        break;
+      case "Guzzle3":
+        $this->client = new \Spinegar\Sugar7Wrapper\Clients\Guzzle3;
+        break;
+      default:
+        // Is it OK with an exeption here? This is for security (not able
+        // to call for new on unknown classes, so I vote "Yay".
+        throw new \InvalidArgumentException(sprintf("There are no client named %s", $client));
+        break;
+    }
   }
   
   /**
@@ -48,18 +60,18 @@ class Rest {
     return $this->client->check();
   }
 
- /**
-  * Function: setClientOptions()
-  * Parameters:   $key = Guzzle option, $value = Value  
-  * Description:  Set Default options for the Guzzle client.
-  * Returns:  returns $this
-  */
- public function setClientOption($key, $value)
- {
-  $this->client->setClientOption($key, $value);
-
-  return $this;
-}
+  /**
+   * Function: setClientOptions()
+   * Parameters:   $key = Guzzle option, $value = Value  
+   * Description:  Set Default options for the Guzzle client.
+   * Returns:  returns $this
+   */
+  public function setClientOption($key, $value)
+  {
+    $this->client->setClientOption($key, $value);
+   
+    return $this;
+  }
 
   /**
   * Function: setUrl()
