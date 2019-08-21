@@ -328,7 +328,7 @@ class Guzzle6 implements ClientInterface {
   */
   public function get($endpoint, $parameters = array())
   {
-    $result = $this->request('GET', $endpoint, 
+    $result = $this->request('GET', $endpoint,
         array('query' => $parameters));
 
     return $result;
@@ -345,7 +345,7 @@ class Guzzle6 implements ClientInterface {
   */
   public function getFile($endpoint, $destinationFile, $parameters = array())
   {
-    return $this->request('GET', $endpoint, 
+    return $this->request('GET', $endpoint,
         array(
             'query' => $parameters,
             'sink' => $destinationFile,
@@ -363,9 +363,6 @@ class Guzzle6 implements ClientInterface {
   */
   public function postFile($endpoint, $parameters = array())
   {
-    if(!self::check())
-      self::connect();
-
     // I have a slight feeling this may be a BC break.
     // New method: (name, contents, filename)
     // http://docs.guzzlephp.org/en/latest/request-options.html#multipart
@@ -373,7 +370,7 @@ class Guzzle6 implements ClientInterface {
 
     // Is returning the response the correct action here? The original one
     // returned an array of responses if I groked the Guzzle code correctly.
-    return $this->getClient()->request('POST', $endpoint, $parameters, false);
+    return $this->request('POST', $endpoint, $parameters, false);
   }
 
   /**
@@ -386,7 +383,7 @@ class Guzzle6 implements ClientInterface {
   */
   public function post($endpoint, $parameters = array())
   {
-    return $this->getClient()->request('POST', $endpoint, 
+    return $this->request('POST', $endpoint,
         array('json' => $parameters));
   }
   
@@ -400,7 +397,7 @@ class Guzzle6 implements ClientInterface {
   */
   public function put($endpoint, $parameters = array())
   {
-    return $this->getClient()->request('PUT', $endpoint, 
+    return $this->request('PUT', $endpoint,
         array('json' => $parameters));
   }
 
@@ -413,6 +410,6 @@ class Guzzle6 implements ClientInterface {
   */
   public function delete($endpoint, $parameters = array())
   {
-    return $this->getClient()->request('DELETE', $endpoint);
+    return $this->request('DELETE', $endpoint);
   }
 }
